@@ -1,9 +1,560 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>ILDA Viewer</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="icon" href="favicon.png" type="image/png">
+
+    <style>
+        .bottom-right {
+            position: fixed;
+            bottom: 20px;
+            right: 20px; 
+            z-index: 1000;
+        }
+        .bottom-left {
+            position: fixed;
+            bottom: 20px; 
+            left: 20px;  
+            z-index: 1000; 
+        }
+        .small-lightgray-text {
+            color: lightgray;
+            font-size: 0.8em;
+        }
+        .white-text {
+            color: white;
+        }
+    </style>
 </head>
+
 <body>
-    Todo
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.11.1/p5.js"
+        integrity="sha512-kSvJqUQUrW819ZGEnJKH6dwr8XmNBP509Puwtuj1TdY9SasSuY2enn+e7NcbVChql/ZFcDAicGSzDztq5hQCEQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.3/js/bootstrap.min.js"
+        integrity="sha512-ykZ1QQr0Jy/4ZkvKuqWn4iF3lqPZyij9iRv6sGqLRdTPkY69YX6+7wvVGmsdBbiIfN/8OdsI7HABjvEok6ZopQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+
+
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col-lg-5 col-md-5 col-sm-12 mb-3">
+                <canvas ref="p5-canvas" id="p5-canvas"></canvas>
+            </div>
+
+            <div class="col-lg-7 col-md-7 col-sm-12">
+                <div class="row">
+                    <div class="col-12 mb-3">
+                        <input type="file" @change="onFileSelected" accept=".ild, .ilda, .ildx" style="display:none;"
+                            ref="fileInput">
+                        <button class="form-control" @click="triggerFileInput">Upload ILDA File</button>
+                        <div v-if="loadingFile" class="progress progress-height" role="progressbar" aria-label="Animated striped example" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                        </div>
+                        <div v-else class="form-text progress-height">File: {{ filename }}</div>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <label for="animation-select">Animation:</label>
+                        <select class="form-select" id="animation-select" @change="animationChanged"
+                            v-model="selectedAnimation">
+                            <option v-for="animation in animations" :value="animation">{{ animation.name + " (" + animation.company + ")" }}</option>
+                        </select>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <div class="btn-group w-100" role="group">
+                            <input type="checkbox" class="btn-check" name="flipXCheck" id="flipXCheck"
+                                autocomplete="off" v-model="flipX">
+                            <label class="btn btn-outline-primary" for="flipXCheck">Flip X</label>
+
+                            <input type="checkbox" class="btn-check" name="flipYCheck" id="flipYCheck"
+                                autocomplete="off" v-model="flipY">
+                            <label class="btn btn-outline-primary" for="flipYCheck">Flip Y</label>
+                        </div>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="animationModeRadio" id="animationModeRadio1"
+                                autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="animationModeRadio1"
+                                @click="animate">Animate</label>
+
+                            <input type="radio" class="btn-check" name="animationModeRadio" id="animationModeRadio2"
+                                autocomplete="off">
+                            <label class="btn btn-outline-primary" for="animationModeRadio2" @click="frameByFrame">Frame by Frame</label>
+                        </div>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <div class="btn-group w-100" role="group" id="displayModeButtonGroup">
+                            <input type="radio" class="btn-check" name="displayModeRadio" id="displayModeRadio1"
+                                autocomplete="off">
+                            <label class="btn btn-outline-primary" for="displayModeRadio1"
+                                @click="modeDebug">Debug</label>
+
+                            <input type="radio" class="btn-check" name="displayModeRadio" id="displayModeRadio2"
+                                autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="displayModeRadio2" @click="mode2D">2D</label>
+
+                            <input type="radio" class="btn-check" name="displayModeRadio" id="displayModeRadio3"
+                                autocomplete="off">
+                            <label class="btn btn-outline-primary" for="displayModeRadio3" @click="mode3D">3D</label>
+
+                        </div>
+                        <div v-if="displayMode=='debug'" class="form-text">Visible lines are displayed in green, invisible lines in red.</div>
+                        <div v-else-if="displayMode=='2D'" class="form-text white-text">Filler</div>
+                        <div v-else="displayMode=='3D'" class="form-text">Use the mouse to control the camera.</div>
+                    </div>
+                    <div class="col-12">
+                        <template v-if="animationMode == 'animate'">
+                            <label for="fps">FPS:</label>
+                            <input type="number" class="form-control" v-model="fps" min="1" max="60" step="1">
+                            <div v-if="selectedAnimation" class="form-text">{{ selectedAnimation.frames.length + " Frame(s)" }}</div>
+                        </template>
+                        <template v-else>
+                            <div class="btn-group w-100" role="group">
+                                <button class="form-control" @click="previousFrame">Previous Frame</button>
+                                <button class="form-control" @click="nextFrame">Next Frame</button>
+                            </div>
+                            <div class="form-text">{{ currentFrameIndex + 1 }} / {{ selectedAnimation.frames.length }}</div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-left small-lightgray-text">
+        <a target="_blank" href="https://icons8.com/icon/7289/laser-beam">Laser</a> icon by <a target="_blank" href="https://icons8.com">Icons8</a>
+    </div>
+    <div class="bottom-right small-lightgray-text">
+        <a target="_blank" href="https://github.com/CR1337/ilda-viewer">Github Repository</a>
+    </div>
 </body>
+
 </html>
+
+<script>
+    HEADER_SIZE = 32;
+    INDEXED_3D_RECORD_SIZE = 8;
+    INDEXED_2D_RECORD_SIZE = 6;
+    COLOR_PALETTE_RECORD_SIZE = 3;
+    TRUE_COLOR_3D_RECORD_SIZE = 10;
+    TRUE_COLOR_2D_RECORD_SIZE = 8;
+    ILDA_STATUS_CODE_LAST_POINT_MASK = 0b10000000;
+    ILDA_STATUS_CODE_BLANKING_MASK = 0b01000000;
+
+    const IldaFormatCode = Object.freeze({
+        ILDA_FORMAT_CODE_3D_INDEXED: 0,
+        ILDA_FORMAT_CODE_2D_INDEXED: 1,
+        ILDA_FORMAT_CODE_COLOR_PALETTE: 2,
+        ILDA_FORMAT_CODE_3D_TRUE_COLOR: 4,
+        ILDA_FORMAT_CODE_2D_TRUE_COLOR: 5
+    });
+
+    class ColorPalette {
+        constructor() {
+            this.colors = [];
+        }
+
+        static defaultPalette() {
+            const palette = new ColorPalette();
+            palette.colors = [
+                [255, 0, 0], [255, 16, 0], [255, 32, 0], [255, 48, 0],
+                [255, 64, 0], [255, 80, 0], [255, 96, 0], [255, 112, 0],
+                [255, 128, 0], [255, 144, 0], [255, 160, 0], [255, 176, 0],
+                [255, 192, 0], [255, 208, 0], [255, 224, 0], [255, 240, 0],
+                [255, 255, 0], [224, 255, 0], [192, 255, 0], [160, 255, 0],
+                [128, 255, 0], [96, 255, 0], [64, 255, 0], [32, 255, 0],
+                [0, 255, 0], [0, 255, 36], [0, 255, 73], [0, 255, 109],
+                [0, 255, 146], [0, 255, 182], [0, 255, 219], [0, 255, 255],
+                [0, 227, 255], [0, 198, 255], [0, 170, 255], [0, 142, 255],
+                [0, 113, 255], [0, 85, 255], [0, 56, 255], [0, 28, 255],
+                [0, 0, 255], [32, 0, 255], [64, 0, 255], [96, 0, 255],
+                [128, 0, 255], [160, 0, 255], [192, 0, 255], [224, 0, 255],
+                [255, 0, 255], [255, 32, 255], [255, 64, 255], [255, 96, 255],
+                [255, 128, 255], [255, 160, 255], [255, 192, 255], [255, 224, 255],
+                [255, 255, 255], [255, 224, 224], [255, 192, 192], [255, 160, 160],
+                [255, 128, 128], [255, 96, 96], [255, 64, 64], [255, 32, 32]
+            ];
+            return palette;
+        }
+
+        readData(data, offset) {
+            const header = new DataView(data.slice(offset, offset + HEADER_SIZE));
+            offset += HEADER_SIZE;
+
+            const numberOfRecords = header.getUint16(24, false);
+
+            for (let i = 0; i < numberOfRecords; i++) {
+                const r = data[offset];
+                const g = data[offset + 1];
+                const b = data[offset + 2];
+                this.colors.push([r, g, b]);
+                offset += COLOR_PALETTE_RECORD_SIZE;
+            }
+
+            return offset;
+        }
+
+        getColor(index) {
+            return this.colors[index % this.colors.length];
+        }
+    }
+
+    class Point {
+        constructor(app, colorPalette, formatCode) {
+            this.app = app;
+            this.colorPalette = colorPalette;
+            this.formatCode = formatCode;
+
+            this.color = [0, 0, 0];
+            this.x = 0;
+            this.y = 0;
+            this.mappedX = 0;
+            this.mappedY = 0;
+            this.isBlanked = false;
+            this.isLast = false;
+        }
+
+        _map(value, start1, stop1, start2, stop2) {
+            return (value - start1) / (stop1 - start1) * (stop2 - start2) + start2;
+        }
+
+        readData(data, offset) {
+            let record;
+            let statusCode;
+
+            if (this.formatCode === IldaFormatCode.ILDA_FORMAT_CODE_3D_INDEXED) {
+                record = new DataView(data.buffer, offset, INDEXED_3D_RECORD_SIZE);
+                offset += INDEXED_3D_RECORD_SIZE;
+                this.color = this.colorPalette.getColor(record.getUint8(7));
+                statusCode = record.getUint8(6);
+            } else if (this.formatCode === IldaFormatCode.ILDA_FORMAT_CODE_2D_INDEXED) {
+                record = new DataView(data.buffer, offset, INDEXED_2D_RECORD_SIZE);
+                offset += INDEXED_2D_RECORD_SIZE;
+                this.color = this.colorPalette.getColor(record.getUint8(5));
+                statusCode = record.getUint8(4);
+            } else if (this.formatCode === IldaFormatCode.ILDA_FORMAT_CODE_3D_TRUE_COLOR) {
+                record = new DataView(data.buffer, offset, TRUE_COLOR_3D_RECORD_SIZE);
+                offset += TRUE_COLOR_3D_RECORD_SIZE;
+                this.color = [record.getUint8(7), record.getUint8(8), record.getUint8(9)];
+                statusCode = record.getUint8(6);
+            } else if (this.formatCode === IldaFormatCode.ILDA_FORMAT_CODE_2D_TRUE_COLOR) {
+                record = new DataView(data.buffer, offset, TRUE_COLOR_2D_RECORD_SIZE);
+                offset += TRUE_COLOR_2D_RECORD_SIZE;
+                this.color = [record.getUint8(5), record.getUint8(6), record.getUint8(7)];
+                statusCode = record.getUint8(4);
+            } else {
+                throw new Error("Unknown ILDA format code: " + this.formatCode);
+            }
+
+            this.x = record.getInt16(0, false);
+            this.y = record.getInt16(2, false);
+            this.mappedX = this._map(this.x, this.app.startWidthCurrent, this.app.endWidthCurrent, this.app.startWidthTarget, this.app.endWidthTarget);
+            this.mappedY = this._map(this.y, this.app.startHeightCurrent, this.app.endHeightCurrent, this.app.startHeightTarget, this.app.endHeightTarget);
+            this.isBlanked = (statusCode & ILDA_STATUS_CODE_BLANKING_MASK) !== 0;
+
+            return offset;
+        }
+    }
+
+    class Frame {
+        constructor(app, colorPalette, formatCode) {
+            this.app = app;
+            this.colorPalette = colorPalette;
+            this.formatCode = formatCode;
+
+            this.points = [];
+        }
+
+        readData(data, offset) {
+            const header = new DataView(data.buffer, offset, HEADER_SIZE);
+            offset += HEADER_SIZE;
+
+            const numberOfRecords = header.getUint16(24, false);
+
+            for (let i = 0; i < numberOfRecords; i++) {
+                const point = new Point(this.app, this.colorPalette, this.formatCode);
+                offset = point.readData(data, offset);
+                if (i == numberOfRecords - 1) {
+                    point.isLast = true;
+                }
+                this.points.push(point);
+            }
+
+            return offset;
+        }
+    }
+
+    class Animation {
+        constructor(app, colorPalette) {
+            this.app = app;
+            this.colorPalette = colorPalette;
+
+            this.frames = [];
+            this.fps = 0;
+            this.name = "";
+            this.company = "";
+        }
+
+        readData(data, offset) {
+            const header = new DataView(data.buffer, offset, HEADER_SIZE);
+            const totalFrames = header.getUint16(28, false);
+            this.fps = header.getUint8(31);
+            if (this.fps === 0) {
+                this.fps = 10;
+            }
+            this.name = String.fromCharCode(...new Uint8Array(data.slice(offset + 8, offset + 16)));
+            this.company = String.fromCharCode(...new Uint8Array(data.slice(offset + 16, offset + 24)));
+
+            for (let i = 0; i < totalFrames; i++) {
+                const formatCode = header.getUint8(7);
+                const frame = new Frame(this.app, this.colorPalette, formatCode);
+                offset = frame.readData(data, offset);
+                this.frames.push(frame);
+            }
+
+            return offset;
+        }
+    }
+
+    class AnimationSet {
+        constructor(app) {
+            this.app = app;
+
+            this.animations = [];
+        }
+
+        async readFile(file) {
+            const buffer = await file.arrayBuffer();
+            let data = new Uint8Array(buffer);
+
+            let offset = 0;
+            let colorPalette = ColorPalette.defaultPalette();
+
+            while (offset < data.length) {
+                const header = new DataView(data.buffer, offset, HEADER_SIZE);
+                if (data.length - (offset + HEADER_SIZE) === 0) {
+                    break;
+                }
+
+                const formatCode = header.getUint8(7);
+
+                if (formatCode === IldaFormatCode.ILDA_FORMAT_CODE_COLOR_PALETTE) {
+                    offset = colorPalette.readData(data, offset);
+                } else {
+                    const animation = new Animation(this.app, colorPalette);
+                    offset = animation.readData(data, offset);
+                    this.animations.push(animation);
+                }
+            }
+        }
+    }
+
+    const app = Vue.createApp({
+        data() {
+            return {
+                // constants
+                canvasWidth: 512,
+                canvasHeight: 512,
+                ildaWidth: 65535,
+                ildaHeight: 65535,
+                backgroundColor: 0,
+                projectorDistance: 1000,
+                fillOpacity3D: 64,
+                strokeOpacity3D: 4,
+                minFramerate: 24,
+
+                // variables
+                filename: "",
+                loadingFile: false,
+                animationSet: null,
+                animations: [],
+                selectedAnimation: null,
+                fps: 10,
+                flipX: false,
+                flipY: false,
+                animationMode: "animate",
+                displayMode: "2D",
+                currentFrameIndex: 0,
+                timeSinceLastFrame: 0.0,
+                resetCamera: false,
+                p5Instance: null,
+
+                startWidthCurrent: 0,
+                endWidthCurrent: 0,
+                startHeightCurrent: 0,
+                endHeightCurrent: 0,
+                startWidthTarget: 0,
+                endWidthTarget: 0,
+                startHeightTarget: 0,
+                endHeightTarget: 0
+            }
+        },
+        methods: {
+            triggerFileInput() {
+                this.$refs.fileInput.click();
+            },
+
+            loadFile(file) {
+                this.loadingFile = true;
+                this.filename = file.name;
+                this.animationSet = new AnimationSet(this);
+                this.animationSet.readFile(file).then(() => {
+                    this.animations = this.animationSet.animations;
+                    this.selectedAnimation = this.animations[0];
+                    this.fps = this.selectedAnimation.fps;
+                    this.currentFrameIndex = 0;
+                    this.loadingFile = false;
+                });
+            },
+
+            onFileSelected(event) {
+                const file = event.target.files[0];
+                if (!file) { return; }
+                this.loadFile(file);
+            },
+
+            animationChanged() {
+                this.fps = this.selectedAnimation.fps;
+                this.currentFrameIndex = 0;
+            },
+
+            modeDebug() { this.displayMode = "debug"; this.resetCamera = true; },
+            mode2D() { this.displayMode = "2D"; this.resetCamera = true; },
+            mode3D() { this.displayMode = "3D"; },
+            animate() { this.currentFrameIndex = 0; this.animationMode = "animate"; },
+            frameByFrame() { this.currentFrameIndex = 0; this.animationMode = "frameByFrame"; },
+
+            previousFrame() {
+                this.currentFrameIndex--;
+                if (this.currentFrameIndex < 0) {
+                    this.currentFrameIndex = this.selectedAnimation.frames.length - 1;
+                }
+            },
+
+            nextFrame() {
+                this.currentFrameIndex++;
+                if (this.currentFrameIndex >= this.selectedAnimation.frames.length) {
+                    this.currentFrameIndex = 0;
+                }
+            },
+
+            draw2D(p5) {
+                p5.frameRate(Math.max(this.fps, this.minFramerate));
+                if (this.resetCamera) {
+                    p5.camera(0, 0, 800);
+                    this.resetCamera = false;
+                }
+
+                const frame = this.selectedAnimation.frames[this.currentFrameIndex];
+                const xFactor = (this.flipX) ? -1 : 1;
+                const yFactor = (this.flipY) ? -1 : 1;
+
+                p5.frameRate(this.fps);
+                for (let i = 0; i < frame.points.length - 1; ++i) {
+                    const point1 = frame.points[i];
+                    const point2 = frame.points[i + 1];
+
+                    if (this.displayMode == "debug") {
+                        if (point1.isBlanked) {
+                            p5.stroke(255, 0, 0);
+                        } else {
+                            p5.stroke(0, 255, 0);
+                        }
+                    } else {
+                        if (point1.isBlanked) continue;
+                        p5.stroke(point1.color[0], point1.color[1], point1.color[2]);
+                    }
+
+                    p5.line(xFactor * point1.mappedX, yFactor * point1.mappedY, xFactor * point2.mappedX, yFactor * point2.mappedY);
+                }
+            },
+
+            draw3D(p5) {
+                p5.frameRate(Math.max(this.fps, this.minFramerate));
+                p5.orbitControl();
+
+                const frame = this.selectedAnimation.frames[this.currentFrameIndex];
+                const xFactor = (this.flipX) ? -1 : 1;
+                const yFactor = (this.flipY) ? -1 : 1;
+
+                p5.beginShape(p5.TRIANGLES);
+                for (let i = 0; i < frame.points.length - 1; ++i) {
+                    const point1 = frame.points[i];
+                    if (point1.isBlanked) continue;
+                    const point2 = frame.points[i + 1];
+
+                    p5.fill(point1.color[0], point1.color[1], point1.color[2], this.fillOpacity3D);
+                    p5.stroke(point1.color[0], point1.color[1], point1.color[2], this.strokeOpacity3D)
+
+                    p5.vertex(xFactor * point1.mappedX, yFactor * point1.mappedY, 0);
+                    p5.vertex(xFactor * point2.mappedX, yFactor * point2.mappedY, 0);
+                    p5.vertex(0, 0, -this.projectorDistance);
+                }
+                p5.endShape();
+            },
+
+            fetchIldaFile() {
+                fetch("example.ild")
+                    .then(response => response.blob())
+                    .then(data => {
+                        const file = new File([data], "example.ild", { type: data.type });
+                        this.loadFile(file);
+                    })
+                    .catch(error => console.error(error));
+            },
+
+            p5Setup(p5) {
+                p5.createCanvas(this.canvasWidth, this.canvasHeight, p5.WEBGL, document.getElementById('p5-canvas'));
+                p5.background(this.backgroundColor);
+            },
+
+            p5Draw(p5) {
+                if (!this.selectedAnimation) return;
+                p5.frameRate(this.fps);
+                if (this.animationMode === 'animate') {
+                    const timePerFrame = 1000 / this.fps;
+                    this.timeSinceLastFrame += p5.deltaTime;
+                    if (this.timeSinceLastFrame >= timePerFrame) {
+                        this.timeSinceLastFrame -= timePerFrame;
+                        this.nextFrame();
+                    }
+                }
+                p5.background(this.backgroundColor);
+                if (this.displayMode === "3D") {
+                    this.draw3D(p5);
+                } else {
+                    this.draw2D(p5);
+                }
+            },
+
+            instantiateP5() {
+                const sketch = (p) => {
+                    p.setup = () => { this.p5Setup(p) };
+                    p.draw = () => { this.p5Draw(p) };
+                };
+                this.p5Instance = new p5(sketch, this.$refs.p5Container);
+            }
+        },
+        mounted() {
+            this.startWidthCurrent = -this.ildaWidth / 2;
+            this.endWidthCurrent = this.ildaWidth / 2;
+            this.startHeightCurrent = -this.ildaHeight / 2;
+            this.endHeightCurrent = this.ildaHeight / 2;
+            this.startWidthTarget = -this.canvasWidth / 2;
+            this.endWidthTarget = this.canvasWidth / 2;
+            this.startHeightTarget = -this.canvasHeight / 2;
+            this.endHeightTarget = this.canvasHeight / 2;
+
+            this.instantiateP5();
+            this.fetchIldaFile();
+        }
+    });
+    app.mount('body');
+</script>
