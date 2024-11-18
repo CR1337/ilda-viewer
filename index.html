@@ -462,13 +462,13 @@
                     const point2 = frame.points[i + 1];
 
                     if (this.displayMode == "debug") {
-                        if (point1.isBlanked) {
+                        if (point2.isBlanked) {
                             p5.stroke(255, 0, 0);
                         } else {
                             p5.stroke(0, 255, 0);
                         }
                     } else {
-                        if (point1.isBlanked) continue;
+                        if (point2.isBlanked) continue;
                         p5.stroke(point1.color[0], point1.color[1], point1.color[2]);
                     }
 
@@ -486,9 +486,9 @@
 
                 p5.beginShape(p5.TRIANGLES);
                 for (let i = 0; i < frame.points.length - 1; ++i) {
-                    const point1 = frame.points[i];
-                    if (point1.isBlanked) continue;
                     const point2 = frame.points[i + 1];
+                    if (point2.isBlanked) continue;
+                    const point1 = frame.points[i];
 
                     p5.fill(point1.color[0], point1.color[1], point1.color[2], this.fillOpacity3D);
                     p5.stroke(point1.color[0], point1.color[1], point1.color[2], this.strokeOpacity3D)
