@@ -494,7 +494,7 @@
 
                 const frame = this.selectedAnimation.frames[this.currentFrameIndex];
                 const xFactor = (this.flipX) ? -1 : 1;
-                const yFactor = (this.flipY) ? -1 : 1;
+                const yFactor = (this.flipY) ? 1 : -1;
 
                 p5.beginShape(p5.TRIANGLES);
                 for (let i = 0; i < frame.points.length - 1; ++i) {
