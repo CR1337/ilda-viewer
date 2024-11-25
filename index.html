@@ -51,9 +51,12 @@
             <div class="col-lg-7 col-md-7 col-sm-12">
                 <div class="row">
                     <div class="col-12 mb-3">
-                        <input type="file" @change="onFileSelected" accept=".ild, .ilda, .ildx" style="display:none;"
+                        <div class="btn-group w-100" role="group">
+                            <input type="file" @change="onFileSelected" accept=".ild, .ilda, .ildx" style="display:none;"
                             ref="fileInput">
-                        <button class="form-control" @click="triggerFileInput">Upload ILDA File</button>
+                            <button class="form-control" @click="triggerFileInput">Upload ILDA File</button>
+                            <button class="form-control" @click="captureTriggered" :disabled="loadingFile">Capture Animation</button>
+                        </div>
                         <div v-if="loadingFile" class="progress progress-height" role="progressbar" aria-label="Animated striped example" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
                             <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
                         </div>
@@ -384,7 +387,7 @@
 
                 // variables
                 filename: "",
-                loadingFile: false,
+                loadingFile: true,
                 animationSet: null,
                 animations: [],
                 selectedAnimation: null,
@@ -397,6 +400,7 @@
                 timeSinceLastFrame: 0.0,
                 resetCamera: false,
                 p5Instance: null,
+                startCapture: false,
 
                 startWidthCurrent: 0,
                 endWidthCurrent: 0,
@@ -437,6 +441,11 @@
                 this.currentFrameIndex = 0;
             },
 
+            captureTriggered() {
+                this.startCapture = true;
+                this.currentFrameIndex = 0;
+            },
+
             modeDebug() { this.displayMode = "debug"; this.resetCamera = true; },
             mode2D() { this.displayMode = "2D"; this.resetCamera = true; },
             mode3D() { this.displayMode = "3D"; },
@@ -457,11 +466,32 @@
                 }
             },
 
+            capture(p5) {
+                this.startCapture = false;
+                document.getElementById('animationModeRadio1').checked = true;
+                this.animationMode = "animate";
+                p5.saveGif(
+                    "ilda-capture.gif", 
+                    this.selectedAnimation.frames.length,
+                    {
+                        delay: 0,
+                        units: 'frames',
+                        silent: false,
+                        notificationDuration: 0.1,
+                        notificationID: 'progressBar'
+                    }
+                );
+            },
+
             draw2D(p5) {
                 p5.frameRate(Math.max(this.fps, this.minFramerate));
                 if (this.resetCamera) {
                     p5.camera(0, 0, 800);
                     this.resetCamera = false;
+                }
+
+                if (this.startCapture) {
+                    this.capture(p5);
                 }
 
                 const frame = this.selectedAnimation.frames[this.currentFrameIndex];
@@ -498,6 +528,10 @@
             draw3D(p5) {
                 p5.frameRate(Math.max(this.fps, this.minFramerate));
                 p5.orbitControl();
+
+                if (this.startCapture) {
+                    this.capture(p5);
+                }
 
                 const frame = this.selectedAnimation.frames[this.currentFrameIndex];
                 const xFactor = (this.flipX) ? -1 : 1;
