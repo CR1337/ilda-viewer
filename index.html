@@ -54,7 +54,7 @@
                         <div class="btn-group w-100" role="group">
                             <input type="file" @change="onFileSelected" accept=".ild, .ilda, .ildx" style="display:none;"
                             ref="fileInput">
-                            <button class="form-control" @click="triggerFileInput">Upload ILDA File</button>
+                            <button class="form-control" @click="triggerFileInput" :disabled="loadingFile">Upload ILDA File</button>
                             <button class="form-control" @click="captureTriggered" :disabled="loadingFile">Capture Animation</button>
                         </div>
                         <div v-if="loadingFile" class="progress progress-height" role="progressbar" aria-label="Animated striped example" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
@@ -64,46 +64,46 @@
                     </div>
                     <div class="col-12 mb-3">
                         <label for="animation-select">Animation:</label>
-                        <select class="form-select" id="animation-select" @change="animationChanged"
+                        <select class="form-select" id="animation-select" @change="animationChanged" :disabled="loadingFile"
                             v-model="selectedAnimation">
                             <option v-for="animation in animations" :value="animation">{{ animation.name + " (" + animation.company + ")" }}</option>
                         </select>
                     </div>
                     <div class="col-12 mb-3">
                         <div class="btn-group w-100" role="group">
-                            <input type="checkbox" class="btn-check" name="flipXCheck" id="flipXCheck"
+                            <input type="checkbox" class="btn-check" name="flipXCheck" id="flipXCheck" :disabled="loadingFile"
                                 autocomplete="off" v-model="flipX">
                             <label class="btn btn-outline-primary" for="flipXCheck">Flip X</label>
 
-                            <input type="checkbox" class="btn-check" name="flipYCheck" id="flipYCheck"
+                            <input type="checkbox" class="btn-check" name="flipYCheck" id="flipYCheck" :disabled="loadingFile"
                                 autocomplete="off" v-model="flipY">
                             <label class="btn btn-outline-primary" for="flipYCheck">Flip Y</label>
                         </div>
                     </div>
                     <div class="col-12 mb-3">
                         <div class="btn-group w-100" role="group">
-                            <input type="radio" class="btn-check" name="animationModeRadio" id="animationModeRadio1"
+                            <input type="radio" class="btn-check" name="animationModeRadio" id="animationModeRadio1" :disabled="loadingFile"
                                 autocomplete="off" checked>
                             <label class="btn btn-outline-primary" for="animationModeRadio1"
                                 @click="animate">Animate</label>
 
-                            <input type="radio" class="btn-check" name="animationModeRadio" id="animationModeRadio2"
+                            <input type="radio" class="btn-check" name="animationModeRadio" id="animationModeRadio2" :disabled="loadingFile"
                                 autocomplete="off">
                             <label class="btn btn-outline-primary" for="animationModeRadio2" @click="frameByFrame">Frame by Frame</label>
                         </div>
                     </div>
                     <div class="col-12 mb-3">
                         <div class="btn-group w-100" role="group" id="displayModeButtonGroup">
-                            <input type="radio" class="btn-check" name="displayModeRadio" id="displayModeRadio1"
+                            <input type="radio" class="btn-check" name="displayModeRadio" id="displayModeRadio1" :disabled="loadingFile"
                                 autocomplete="off">
                             <label class="btn btn-outline-primary" for="displayModeRadio1"
                                 @click="modeDebug">Debug</label>
 
-                            <input type="radio" class="btn-check" name="displayModeRadio" id="displayModeRadio2"
+                            <input type="radio" class="btn-check" name="displayModeRadio" id="displayModeRadio2" :disabled="loadingFile"
                                 autocomplete="off" checked>
                             <label class="btn btn-outline-primary" for="displayModeRadio2" @click="mode2D">2D</label>
 
-                            <input type="radio" class="btn-check" name="displayModeRadio" id="displayModeRadio3"
+                            <input type="radio" class="btn-check" name="displayModeRadio" id="displayModeRadio3" :disabled="loadingFile"
                                 autocomplete="off">
                             <label class="btn btn-outline-primary" for="displayModeRadio3" @click="mode3D">3D</label>
 
@@ -115,13 +115,13 @@
                     <div class="col-12">
                         <template v-if="animationMode == 'animate'">
                             <label for="fps">FPS:</label>
-                            <input type="number" class="form-control" v-model="fps" min="1" max="60" step="1">
+                            <input type="number" class="form-control" v-model="fps" min="1" max="60" step="1" :disabled="loadingFile">
                             <div v-if="selectedAnimation" class="form-text">{{ selectedAnimation.frames.length + " Frame(s)" }}</div>
                         </template>
                         <template v-else>
                             <div class="btn-group w-100" role="group">
-                                <button class="form-control" @click="previousFrame">Previous Frame</button>
-                                <button class="form-control" @click="nextFrame">Next Frame</button>
+                                <button class="form-control" @click="previousFrame" :disabled="loadingFile">Previous Frame</button>
+                                <button class="form-control" @click="nextFrame" :disabled="loadingFile">Next Frame</button>
                             </div>
                             <div class="form-text">{{ currentFrameIndex + 1 }} / {{ selectedAnimation.frames.length }}</div>
                         </template>
