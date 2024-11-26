@@ -108,8 +108,8 @@
                             <label class="btn btn-outline-primary" for="displayModeRadio3" @click="mode3D">3D</label>
 
                         </div>
-                        <div v-if="displayMode=='debug'" class="form-text">Visible lines are displayed in green, invisible lines in red.</div>
-                        <div v-else-if="displayMode=='2D'" class="form-text white-text">Filler</div>
+                        <div v-if="displayMode=='debug'" class="form-text">Visible lines are displayed in green, invisible lines in red. Traversed points are blue.</div>
+                        <div v-else-if="displayMode=='2D'" class="form-text white-text">&nbsp;</div>
                         <div v-else="displayMode=='3D'" class="form-text">Use the mouse to control the camera.</div>
                     </div>
                     <div class="col-12">
@@ -365,7 +365,8 @@
                 } else {
                     const animation = new Animation(this.app, colorPalette);
                     offset = animation.readData(data, offset);
-                    if (animation.numberOfRecords > 0) {
+                    console.log(animation);
+                    if (animation.frames.length > 0) {
                         this.animations.push(animation);
                     }
                 }
