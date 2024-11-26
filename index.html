@@ -365,7 +365,9 @@
                 } else {
                     const animation = new Animation(this.app, colorPalette);
                     offset = animation.readData(data, offset);
-                    this.animations.push(animation);
+                    if (animation.numberOfRecords > 0) {
+                        this.animations.push(animation);
+                    }
                 }
             }
         }
