@@ -519,9 +519,19 @@
                     p5.line(xFactor * point1.mappedX, yFactor * point1.mappedY, xFactor * point2.mappedX, yFactor * point2.mappedY);
                     if (this.displayMode == "debug") {
                         p5.push();
-                        p5.stroke(0, 0, 255);
-                        p5.strokeWeight(2);
-                        p5.point(xFactor * point1.mappedX, yFactor * point1.mappedY);
+                        if (i > 0 && i < frame.points.length - 2) {
+                            p5.stroke(0, 0, 255);
+                            p5.strokeWeight(2);
+                            p5.point(xFactor * point2.mappedX, yFactor * point2.mappedY);
+                        } else if (i == 0) {
+                            p5.stroke(255, 255, 0);
+                            p5.strokeWeight(2);
+                            p5.circle(xFactor * point1.mappedX, yFactor * point1.mappedY, 6);
+                        } else {
+                            p5.stroke(255, 255, 0);
+                            p5.strokeWeight(2);
+                            p5.square(xFactor * point2.mappedX, yFactor * point2.mappedY, 6);
+                        }
                         p5.pop();
                     }
                 }
