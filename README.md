@@ -11,3 +11,7 @@ Try it out at [cr1337.github.io/ilda-viewer](https://cr1337.github.io/ilda-viewe
 ## Contribution
 
 I would like to add a shader to make the 3D view look more like a real laser projection. If you want to give it a try, feel free to fork the project and submit a pull request. 🙂
+
+## License
+This project is licensed under the GNU Affero General Public License v3.0 (AGPLv3).
+See the [LICENSE](./LICENSE) file for details.
