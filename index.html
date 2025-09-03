@@ -132,7 +132,8 @@
     </div>
 
     <div class="bottom-left small-lightgray-text">
-        <a target="_blank" href="https://icons8.com/icon/7289/laser-beam">Laser</a> icon by <a target="_blank" href="https://icons8.com">Icons8</a>
+        <a target="_blank" href="https://icons8.com/icon/7289/laser-beam">Laser</a> icon by <a target="_blank" href="https://icons8.com">Icons8</a><br>
+        Example <a target="_blank" href="https://www.laser-am.com/download.php?ff=1&v=ilda&f=ilddolf.gif">ILDA file</a> by <a target="_blank" href="https://www.laser-am.com/ilda.php">LASER-AM</a>
     </div>
     <div class="bottom-right small-lightgray-text">
         <a target="_blank" href="https://github.com/CR1337/ilda-viewer">Github Repository</a>
@@ -322,7 +323,7 @@
             const totalFrames = header.getUint16(28, false);
             this.fps = header.getUint8(31);
             if (this.fps === 0) {
-                this.fps = 10;
+                this.fps = 20;
             }
             this.name = String.fromCharCode(...new Uint8Array(data.slice(offset + 8, offset + 16)));
             this.company = String.fromCharCode(...new Uint8Array(data.slice(offset + 16, offset + 24)));
@@ -393,7 +394,7 @@
                 animationSet: null,
                 animations: [],
                 selectedAnimation: null,
-                fps: 10,
+                fps: 20,
                 flipX: false,
                 flipY: false,
                 animationMode: "animate",
